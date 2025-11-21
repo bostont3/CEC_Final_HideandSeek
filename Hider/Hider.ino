@@ -42,34 +42,8 @@ float potget() {
 
 
 // ============================= Matrix Display Changing ===============================
-void matrixidx(char *string, uint16_t &printnum1, uint16_t &printnum2, uint16_t &printnum3) {
+//void matrixidx(char *string, uint16_t &printnum1, uint16_t &printnum2, uint16_t &printnum3) {
 
-  // checking for under 100 value as matrix display moves above and below 100
-  if (pot_360 >= 100) {
-    for (j = 0; j <= 9; j++) {
-      if (string[0] == compare[j]) {
-        printnum1 = (num1[j] << 8) | num2[2];  // hundreds place
-      }
-      if (string[1] == compare[j]) {
-        printnum2 = (num1[j] << 8) | num2[1];  // tens place
-      }
-      if (string[2] == compare[j]) {
-        printnum3 = (num1[j] << 8) | num2[0];  // ones place
-      }
-    }
-  } else {
-    // pot<100
-    printnum3 = (num1[0] << 8) | num2[0];  // hundreds set to zero
-    for (j = 0; j <= 9; j++) {
-      if (string[1] == compare[j]) {
-        printnum2 = (num1[j] << 8) | num2[1];  // tens place
-      }
-      if (string[2] == compare[j]) {
-        printnum3 = (num1[j] << 8) | num2[0];  // ones place
-      }
-    }
-  }
-}
 
 
   // ============================= SETUP ===============================
@@ -116,7 +90,42 @@ void loop() {
   pot_360 = potget();
   sprintf(string, "%f", pot_360);  // transfers 360 pot value to a string
   Serial.println(string);
-  matrixidx(string, printnum1, printnum2, printnum3);
+  //matrixidx(string, printnum1, printnum2, printnum3);
+  // checking for under 100 value as matrix display moves above and below 100
+  if (pot_360 >= 100) {
+    for (j = 0; j <= 9; j++) {
+      if (string[0] == compare[j]) {
+        printnum1 = (num1[j] << 8) | num2[2];  // hundreds place
+      }
+      if (string[1] == compare[j]) {
+        printnum2 = (num1[j] << 8) | num2[1];  // tens place
+      }
+      if (string[2] == compare[j]) {
+        printnum3 = (num1[j] << 8) | num2[0];  // ones place
+      }
+    }
+  } else if (pot_360<100 && pot_360>=10) {
+    // pot<100
+    printnum1 = (num1[0] << 8) | num2[2];  // hundreds set to zero
+    for (j = 0; j <= 9; j++) {
+      if (string[0] == compare[j]) {
+        printnum2 = (num1[j] << 8) | num2[1];  // tens place
+      }
+      if (string[1] == compare[j]) {
+        printnum3 = (num1[j] << 8) | num2[0];  // ones place
+      }
+    }
+  }else if (pot_360<10){
+    //under 10
+    printnum1 = (num1[0] << 8) | num2[2];  // hundreds set to zero
+    printnum2 = (num1[0] << 8) | num2[1];  // tens set to zero
+    for (j = 0; j <= 9; j++) {
+      if (string[0] == compare[j]) {
+        printnum3 = (num1[j] << 8) | num2[0];  // ones place
+
+  }
+    }
+  }
 
 
   // ============================= Matrix Display Usage ===============================
