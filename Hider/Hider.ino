@@ -19,6 +19,69 @@ ADS7142 adc(ADC_ADDR1);  // Create ADS7142 object
 PCA9535 muxU31;
 Adafruit_SHT31 sht31 = Adafruit_SHT31();
 
+// Bluetooth define 
+// Hider Wireless Peripheral
+#include <ArduinoBLE.h>
+
+//---------------------------
+// UUIDs (remember to change)
+//---------------------------
+#define BLE_UUID_PERIPHERAL "ac11a091-6440-4762-ab94-ecb42db6c31c"
+#define BLE_UUID_LED        "aebe45b9-92a3-45cc-8f55-2ed4c4ceccc2"
+#define BLE_UUID_BUTTON     "eec126c7-0471-4d79-b821-e3c573770131"
+
+#define HIDER_BUZZ_PIN 2  // Adjust for your Hider buzzer pin
+
+BLEService mainService(BLE_UUID_PERIPHERAL);
+BLEByteCharacteristic buzzCharacteristic(BLE_UUID_LED, BLERead | BLEWrite);
+
+//Bluetooth
+void hiderBLE_setup() {
+  pinMode(HIDER_BUZZ_PIN, OUTPUT);
+  digitalWrite(HIDER_BUZZ_PIN, LOW);
+
+  BLE.begin();
+  BLE.setDeviceName("robit");
+  BLE.setLocalName("robit");
+
+  mainService.addCharacteristic(buzzCharacteristic);
+  BLE.addService(mainService);
+
+  buzzCharacteristic.writeValue(0); // buzzer OFF default
+
+  BLE.advertise();
+  Serial.println("Hider BLE Peripheral Ready");
+}
+
+void hiderBLE_loop() {
+  BLEDevice central = BLE.central();
+
+  if (central) {
+    Serial.print("Hider connected to: ");
+    Serial.println(central.address());
+
+    while (central.connected()) {
+
+      if (buzzCharacteristic.written()) {
+        byte state = buzzCharacteristic.value();
+
+        if (state == 1) {
+          tone(HIDER_BUZZ_PIN, 1200,100);  // buzzer ON
+        } else {
+          noTone(HIDER_BUZZ_PIN);      // buzzer OFF
+        }
+
+        Serial.print("Hider buzzer = ");
+        Serial.println(state);
+      }
+    }
+
+    Serial.println("Hider BLE: central disconnected");
+    noTone(HIDER_BUZZ_PIN);
+  }
+}
+
+
 // ============================= Matrix Display Setup ===============================
 
 #include <PCA95x5.h>  // include library
@@ -53,7 +116,7 @@ void setup() {
   Serial.begin(115200);
   delay(3000);
   Serial.println("Starting...");
-
+  hiderBLE_setup();
 
   // ============================= Matrix Display Initalization ===============================
 
@@ -86,7 +149,7 @@ void setup() {
 
   // ============================= LOOP ===============================
 void loop() {
-
+  hiderBLE_loop();
   pot_360 = potget();
   sprintf(string, "%f", pot_360);  // transfers 360 pot value to a string
   Serial.println(string);
