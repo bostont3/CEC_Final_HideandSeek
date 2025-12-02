@@ -19,71 +19,6 @@ PCA9535 muxU31;
 
 //Bluetooth defines
 
-// Seeker Wireless Controller
-
-#include <ArduinoBLE.h>
-
-//---------------------------
-// UUIDs (remember to change)
-//---------------------------
-#define BLE_UUID_PERIPHERAL "ac11a091-6440-4762-ab94-ecb42db6c31c"
-#define BLE_UUID_LED        "aebe45b9-92a3-45cc-8f55-2ed4c4ceccc2"
-#define BLE_UUID_BUTTON     "eec126c7-0471-4d79-b821-e3c573770131"
-
-// Characteristic handle
-BLECharacteristic hiderBuzzCharacteristic;
-
-// Track last sent state
-bool lastBuzzState = false;
-
-
-void seekerBLE_setup() {
-  BLE.begin();
-  BLE.scanForUuid(BLE_UUID_PERIPHERAL);
-  Serial.println("Seeker BLE Central Ready");
-}
-
-void seekerBLE_loop(bool seekerShouldBuzz) {
-  // seekerShouldBuzz = true when Seeker sees Hider via distance sensor
-
-  BLEDevice peripheral = BLE.available();
-  static BLEDevice connectedPeripheral;
-
-  // Connect
-  if (peripheral && !connectedPeripheral) {
-    if (peripheral.localName() == "robit") {
-      BLE.stopScan();
-      if (peripheral.connect()) {
-        connectedPeripheral = peripheral;
-        connectedPeripheral.discoverAttributes();
-        hiderBuzzCharacteristic = connectedPeripheral.characteristic(BLE_UUID_LED);
-        Serial.println("Seeker connected to Hider.");
-      }
-    }
-  }
-
-  // If connected, send values
-  if (connectedPeripheral && connectedPeripheral.connected()) {
-
-    if (seekerShouldBuzz != lastBuzzState) {
-      lastBuzzState = seekerShouldBuzz;
-      byte val = seekerShouldBuzz ? 1 : 0;
-      hiderBuzzCharacteristic.writeValue(val);
-
-      Serial.print("SENT to Hider: buzz = ");
-      Serial.println(val);
-    }
-  }
-
-  // If disconnected
-  if (connectedPeripheral && !connectedPeripheral.connected()) {
-    connectedPeripheral = BLEDevice();
-    BLE.scanForUuid(BLE_UUID_PERIPHERAL);
-    Serial.println("Seeker disconnected - restarting scan");
-  }
-}
-
- 
 // ============================= SERVO ===============================
  
 #define SERVO_PIN 9
@@ -254,15 +189,13 @@ void setup() {
   strip.show();     
   strip.setBrightness(255);
 
-  // Bluetooth 
-  seekerBLE_setup();
+
 }
 
  // =============================== LOOP ===============================
 
 void loop() {
-  //bluetooth 
-  seekerBLE_loop(hiderFound);
+ 
   if (hiderFound) {
     stop_motors();
     policeMode();
