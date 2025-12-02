@@ -49,19 +49,18 @@ Adafruit_SHT31 sht31 = Adafruit_SHT31();
 
 // Bluetooth define 
 // Hider Wireless Peripheral
+// central.ino
 #include <ArduinoBLE.h>
+//----------------------------------------------------------------------------------------
+// BLE UUIDs
+//----------------------------------------------------------------------------------------
+#define BLE_UUID_TEST_SERVICE "ac11a091-6440-4762-ab94-ecb42db6c31c"
+#define BLE_UUID_SENSOR1_VALUE "aebe45b9-92a3-45cc-8f55-2ed4c4ceccc2"
 
-//---------------------------
-// UUIDs (remember to change)
-//---------------------------
-#define BLE_UUID_PERIPHERAL "ac11a091-6440-4762-ab94-ecb42db6c31c"
-#define BLE_UUID_LED        "aebe45b9-92a3-45cc-8f55-2ed4c4ceccc2"
-#define BLE_UUID_BUTTON     "eec126c7-0471-4d79-b821-e3c573770131"
+float sensor1_val;
 
-#define HIDER_BUZZ_PIN 2  // Adjust for your Hider buzzer pin
+#define BUZZ_PIN 2
 
-
-//Bluetooth
 
 
 
@@ -118,6 +117,41 @@ void stopMotors() {
   analogWrite(BIN2, 0);
 }
 
+//bluetooth
+
+bool connectPeripheral(BLEDevice peripheral) {
+  if (!peripheral.connect())
+    return false;
+  if (!peripheral.discoverAttributes()) {
+    peripheral.disconnect();
+    return false;
+  }
+  BLECharacteristic Sensor1Characteristic = peripheral.characteristic(BLE_UUID_SENSOR1_VALUE);
+
+
+  if (!Sensor1Characteristic) {
+    peripheral.disconnect();
+    return false;
+  }
+  if (!Sensor1Characteristic.canSubscribe()) {
+    peripheral.disconnect();
+    return false;
+  }
+  if (!Sensor1Characteristic.subscribe()) {
+    peripheral.disconnect();
+    return false;
+  }
+  while (peripheral.connected()) {
+    if (Sensor1Characteristic.valueUpdated()) {
+      tone(BUZZ_PIN, 1000);  // PRINT RECEIVED VALUE
+      // }
+    }
+  }
+  peripheral.disconnect();
+  return true;
+}
+
+
   // ============================= SETUP ===============================
 void setup() {
 
@@ -125,7 +159,7 @@ void setup() {
   Serial.begin(115200);
   delay(3000);
   Serial.println("Starting...");
-  hiderBLE_setup();
+
   startTime = millis(); // Record the start time
 
   // ============================= Matrix Display Initalization ===============================
@@ -153,6 +187,13 @@ void setup() {
       delay(1);
   }
     adc.begin();
+
+    //bluetooth
+     while (!Serial)
+    ;
+  BLE.begin();
+  BLE.scanForUuid(BLE_UUID_TEST_SERVICE);
+
 }
 
 
@@ -218,4 +259,15 @@ void loop() {
     circle1++;
     Serial.println(pot_360);
   }
+  //bluetooth
+    BLEDevice peripheral = BLE.available();
+  if (peripheral) {
+    if (peripheral.localName() != "robit") {
+      return;
+    }
+    BLE.stopScan();
+    connectPeripheral(peripheral);
+    BLE.scanForUuid(BLE_UUID_TEST_SERVICE);
+  }
+
 }

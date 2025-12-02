@@ -60,7 +60,7 @@ const unsigned long TURN_120_MS       = 800;
 const unsigned long DRIVE_50CM_MS     = 1500;
  
 bool hiderFound = false;
- 
+
 // ========================= MOTOR FUNCTIONS ==========================
  
 void move_forward() {
@@ -84,6 +84,7 @@ void turn_left() {
   analogWrite(BIN2, 200);
 }
 
+int count=0;
 // ======================= NEOPIXEL ==============================
  Adafruit_NeoPixel strip(NEO_COUNT, NEO_PIN, NEO_GRB + NEO_KHZ800);
  
@@ -255,6 +256,7 @@ void loop() {
       if (central.rssi() != 0) {
         value_send= 1;
         Sensor1Characteristic.writeValue(value_send);  //SEND VALUE
+
       }
     }
     }
