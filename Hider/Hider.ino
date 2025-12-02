@@ -7,11 +7,39 @@
 #include <Wire.h>
 #include "Adafruit_SHT31.h"
 
+//Motor pins
+#define AIN1 0
+#define AIN2 1
+#define BIN1 8
+#define BIN2 A2
+
+// ----------------------------
+// Constants for motor
+// ----------------------------
+float R = 30.0; // Circle radius (cm)
+float wheel_diameter = 6.5; // cm
+float wheel_circ = 3.14159 * wheel_diameter;
+
+float wheel_center_spacing = 12.5; // cm (midpoint of 10–15 cm)
+float W2 = wheel_center_spacing / 2.0;
+
+float R_L = R - W2; // Left wheel path radius
+float R_R = R + W2; // Right wheel path radius
+
+// Motor characteristics
+int base_speed = 70; // 1 rev/sec for both wheels
+
+const int LEFT_PWM  = 170;   // slower wheel
+const int RIGHT_PWM = 255;   // faster wheel
+
+unsigned long startTime;
+int circle1=0;
 // ============================= POT Defines ===============================
 
 uint16_t temp0;
 uint16_t pot;
 float pot_360;
+float lastpot=0, delta_pot;
 char string[5];
 char compare[] = "0123456789";
 #define ADC_ADDR1 0x18   // ADS7142 I2C address
@@ -32,54 +60,10 @@ Adafruit_SHT31 sht31 = Adafruit_SHT31();
 
 #define HIDER_BUZZ_PIN 2  // Adjust for your Hider buzzer pin
 
-BLEService mainService(BLE_UUID_PERIPHERAL);
-BLEByteCharacteristic buzzCharacteristic(BLE_UUID_LED, BLERead | BLEWrite);
 
 //Bluetooth
-void hiderBLE_setup() {
-  pinMode(HIDER_BUZZ_PIN, OUTPUT);
-  digitalWrite(HIDER_BUZZ_PIN, LOW);
 
-  BLE.begin();
-  BLE.setDeviceName("robit");
-  BLE.setLocalName("robit");
 
-  mainService.addCharacteristic(buzzCharacteristic);
-  BLE.addService(mainService);
-
-  buzzCharacteristic.writeValue(0); // buzzer OFF default
-
-  BLE.advertise();
-  Serial.println("Hider BLE Peripheral Ready");
-}
-
-void hiderBLE_loop() {
-  BLEDevice central = BLE.central();
-
-  if (central) {
-    Serial.print("Hider connected to: ");
-    Serial.println(central.address());
-
-    while (central.connected()) {
-
-      if (buzzCharacteristic.written()) {
-        byte state = buzzCharacteristic.value();
-
-        if (state == 1) {
-          tone(HIDER_BUZZ_PIN, 1200,100);  // buzzer ON
-        } else {
-          noTone(HIDER_BUZZ_PIN);      // buzzer OFF
-        }
-
-        Serial.print("Hider buzzer = ");
-        Serial.println(state);
-      }
-    }
-
-    Serial.println("Hider BLE: central disconnected");
-    noTone(HIDER_BUZZ_PIN);
-  }
-}
 
 
 // ============================= Matrix Display Setup ===============================
@@ -98,16 +82,41 @@ float potget() {
   if (!adc.read2Ch(&temp0, &pot))  // could not figure out how to only use the temp channel shouldnt be a problem though
     Serial.println("adc failed");
   pot_360 = (((360 - 0) * (pot - 96)) / (65520 - 96)) + 0;  // scaling pot total to 0-360
-  Serial.print("POT = ");
-  Serial.println(pot_360);
+  //Serial.print("POT = ");
+  //Serial.println(pot_360);
   return pot_360;
 }
 
+// Move around circle
+void circle(float delta_pot){
+  for(int idx=0 ; idx<delta_pot; idx++){
+    leftForward(LEFT_PWM);
+    rightForward(RIGHT_PWM);
+    delay(22.7);
+  }
+  stopMotors();
+  
+}
+// Left wheel forward
+void leftForward(int pwm) {
+  analogWrite(AIN1, pwm);
+  analogWrite(AIN2, 0);
+}
+ 
+// Right wheel forward
+void rightForward(int pwm) {
+  analogWrite(BIN1, 0);
+  analogWrite(BIN2, pwm);
+}
+ 
 
-// ============================= Matrix Display Changing ===============================
-//void matrixidx(char *string, uint16_t &printnum1, uint16_t &printnum2, uint16_t &printnum3) {
-
-
+//stop motors
+void stopMotors() {
+  analogWrite(AIN1, 0);
+  analogWrite(AIN2, 0);
+  analogWrite(BIN1, 0);
+  analogWrite(BIN2, 0);
+}
 
   // ============================= SETUP ===============================
 void setup() {
@@ -117,6 +126,7 @@ void setup() {
   delay(3000);
   Serial.println("Starting...");
   hiderBLE_setup();
+  startTime = millis(); // Record the start time
 
   // ============================= Matrix Display Initalization ===============================
 
@@ -149,10 +159,10 @@ void setup() {
 
   // ============================= LOOP ===============================
 void loop() {
-  hiderBLE_loop();
+
   pot_360 = potget();
   sprintf(string, "%f", pot_360);  // transfers 360 pot value to a string
-  Serial.println(string);
+  //Serial.println(string);
   //matrixidx(string, printnum1, printnum2, printnum3);
   // checking for under 100 value as matrix display moves above and below 100
   if (pot_360 >= 100) {
@@ -202,4 +212,10 @@ void loop() {
   LEDmux.write(0x000F);
   LEDmux.write(printnum3);  // ones place
   delay(0);
+
+  if (millis() - startTime >= 2000 && circle1==0) {
+    circle(pot_360);
+    circle1++;
+    Serial.println(pot_360);
+  }
 }
