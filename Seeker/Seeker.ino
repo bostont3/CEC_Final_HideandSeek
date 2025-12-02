@@ -18,6 +18,25 @@ VL6180X sensor;
 PCA9535 muxU31;         
 
 //Bluetooth defines
+// peripheral.ino
+#include <cstdlib>  // For rand() and srand()
+#include <ctime>    // For time()
+#include <ArduinoBLE.h>
+
+//-------------------------------------------------------------------------------------
+// BLE UUIDs
+//-------------------------------------------------------------------------------------
+#define BLE_UUID_TEST_SERVICE  "ac11a091-6440-4762-ab94-ecb42db6c31c"
+#define BLE_UUID_SENSOR1_VALUE "aebe45b9-92a3-45cc-8f55-2ed4c4ceccc2"
+
+float value_send;
+float value_rcv;
+//-------------------------------------------------------------------------------------
+// BLE
+//-------------------------------------------------------------------------------------
+BLEService testService(BLE_UUID_TEST_SERVICE);
+BLEFloatCharacteristic Sensor1Characteristic(BLE_UUID_SENSOR1_VALUE, BLERead | BLEWrite | BLENotify);
+
 
 // ============================= SERVO ===============================
  
@@ -189,13 +208,24 @@ void setup() {
   strip.show();     
   strip.setBrightness(255);
 
+  //bluetooth setup
+ BLE.begin();
+  // set advertised local name and service
+  BLE.setDeviceName("robit");
+  BLE.setLocalName("robit");
+  BLE.setAdvertisedService(testService);
+  // BLE add characteristics
+  testService.addCharacteristic(Sensor1Characteristic);
+  // add service
+  BLE.addService(testService);
+  BLE.advertise();
 
 }
 
  // =============================== LOOP ===============================
 
 void loop() {
- 
+
   if (hiderFound) {
     stop_motors();
     policeMode();
@@ -218,6 +248,19 @@ void loop() {
     }
   }
  
+  BLEDevice central = BLE.central();
+  if (central) {
+    if(found){
+    while (central.connected()) {
+      if (central.rssi() != 0) {
+        value_send= 1;
+        Sensor1Characteristic.writeValue(value_send);  //SEND VALUE
+      }
+    }
+    }
+
+  }
+
   if (found) {
     driveToHider();
     hiderFound = true;   
