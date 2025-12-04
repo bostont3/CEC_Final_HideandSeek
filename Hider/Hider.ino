@@ -143,8 +143,8 @@ bool connectPeripheral(BLEDevice peripheral) {
   }
   while (peripheral.connected()) {
     if (Sensor1Characteristic.valueUpdated()) {
-      tone(BUZZ_PIN, 1000);  // PRINT RECEIVED VALUE
-      // }
+      tone(BUZZ_PIN, 1000,100);  // PRINT RECEIVED VALUE
+      
     }
   }
   peripheral.disconnect();
@@ -189,8 +189,9 @@ void setup() {
     adc.begin();
 
     //bluetooth
-     while (!Serial)
-    ;
+     while (!Serial);
+
+     
   BLE.begin();
   BLE.scanForUuid(BLE_UUID_TEST_SERVICE);
 
