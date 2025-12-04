@@ -142,7 +142,7 @@ bool connectPeripheral(BLEDevice peripheral) {
   }
   while (peripheral.connected()) {
     if (Sensor1Characteristic.valueUpdated()) {
-      tone(BUZZ_PIN, 1000, 100);  // PRINT RECEIVED VALUE
+      tone(BUZZ_PIN, 1000, 100);  // Buzz Buzzer
     }
   }
   peripheral.disconnect();
@@ -252,12 +252,13 @@ void loop() {
   LEDmux.write(printnum3);  // ones place
   delay(0);
 
-  if (millis() - startTime >= 2000 && circle1 == 0) {
+  if (millis() - startTime >= 5000 && circle1 == 0) {
     circle(pot_360);
-    circle1++;
+    circle1=1;
     Serial.println(pot_360);
   }
   //bluetooth
+  if (circle1==1){
   BLEDevice peripheral = BLE.available();
   if (peripheral) {
     if (peripheral.localName() != "robit") {
@@ -266,5 +267,6 @@ void loop() {
     BLE.stopScan();
     connectPeripheral(peripheral);
     BLE.scanForUuid(BLE_UUID_TEST_SERVICE);
+  }
   }
 }

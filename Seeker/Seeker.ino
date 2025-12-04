@@ -222,6 +222,7 @@ void setup() {
   // add service
   BLE.addService(testService);
   BLE.advertise();
+  delay(20000)
 }
 
 // =============================== LOOP ===============================
