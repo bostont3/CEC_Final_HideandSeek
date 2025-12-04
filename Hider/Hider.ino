@@ -16,30 +16,30 @@
 // ----------------------------
 // Constants for motor
 // ----------------------------
-float R = 30.0; // Circle radius (cm)
-float wheel_diameter = 6.5; // cm
+float R = 30.0;              // Circle radius (cm)
+float wheel_diameter = 6.5;  // cm
 float wheel_circ = 3.14159 * wheel_diameter;
 
-float wheel_center_spacing = 12.5; // cm (midpoint of 10–15 cm)
+float wheel_center_spacing = 12.5;  // cm (midpoint of 10–15 cm)
 float W2 = wheel_center_spacing / 2.0;
 
-float R_L = R - W2; // Left wheel path radius
-float R_R = R + W2; // Right wheel path radius
+float R_L = R - W2;  // Left wheel path radius
+float R_R = R + W2;  // Right wheel path radius
 
 // Motor characteristics
-int base_speed = 70; // 1 rev/sec for both wheels
+int base_speed = 70;  // 1 rev/sec for both wheels
 
-const int LEFT_PWM  = 170;   // slower wheel
-const int RIGHT_PWM = 255;   // faster wheel
+const int LEFT_PWM = 170;   // slower wheel
+const int RIGHT_PWM = 255;  // faster wheel
 
 unsigned long startTime;
-int circle1=0;
+int circle1 = 0;
 // ============================= POT Defines ===============================
 
 uint16_t temp0;
 uint16_t pot;
 float pot_360;
-float lastpot=0, delta_pot;
+float lastpot = 0, delta_pot;
 char string[5];
 char compare[] = "0123456789";
 #define ADC_ADDR1 0x18   // ADS7142 I2C address
@@ -47,7 +47,7 @@ ADS7142 adc(ADC_ADDR1);  // Create ADS7142 object
 PCA9535 muxU31;
 Adafruit_SHT31 sht31 = Adafruit_SHT31();
 
-// Bluetooth define 
+// Bluetooth define
 // Hider Wireless Peripheral
 // central.ino
 #include <ArduinoBLE.h>
@@ -87,27 +87,26 @@ float potget() {
 }
 
 // Move around circle
-void circle(float delta_pot){
-  for(int idx=0 ; idx<delta_pot; idx++){
+void circle(float delta_pot) {
+  for (int idx = 0; idx < delta_pot; idx++) {
     leftForward(LEFT_PWM);
     rightForward(RIGHT_PWM);
     delay(22.7);
   }
   stopMotors();
-  
 }
 // Left wheel forward
 void leftForward(int pwm) {
   analogWrite(AIN1, pwm);
   analogWrite(AIN2, 0);
 }
- 
+
 // Right wheel forward
 void rightForward(int pwm) {
   analogWrite(BIN1, 0);
   analogWrite(BIN2, pwm);
 }
- 
+
 
 //stop motors
 void stopMotors() {
@@ -143,8 +142,7 @@ bool connectPeripheral(BLEDevice peripheral) {
   }
   while (peripheral.connected()) {
     if (Sensor1Characteristic.valueUpdated()) {
-      tone(BUZZ_PIN, 1000,100);  // PRINT RECEIVED VALUE
-      
+      tone(BUZZ_PIN, 1000, 100);  // PRINT RECEIVED VALUE
     }
   }
   peripheral.disconnect();
@@ -152,7 +150,7 @@ bool connectPeripheral(BLEDevice peripheral) {
 }
 
 
-  // ============================= SETUP ===============================
+// ============================= SETUP ===============================
 void setup() {
 
   // Serial
@@ -160,7 +158,7 @@ void setup() {
   delay(3000);
   Serial.println("Starting...");
 
-  startTime = millis(); // Record the start time
+  startTime = millis();  // Record the start time
 
   // ============================= Matrix Display Initalization ===============================
 
@@ -186,20 +184,20 @@ void setup() {
     while (1)
       delay(1);
   }
-    adc.begin();
+  adc.begin();
 
-    //bluetooth
-     while (!Serial);
+  //bluetooth
+  while (!Serial)
+    ;
 
-     
+
   BLE.begin();
   BLE.scanForUuid(BLE_UUID_TEST_SERVICE);
-
 }
 
 
 
-  // ============================= LOOP ===============================
+// ============================= LOOP ===============================
 void loop() {
 
   pot_360 = potget();
@@ -219,7 +217,7 @@ void loop() {
         printnum3 = (num1[j] << 8) | num2[0];  // ones place
       }
     }
-  } else if (pot_360<100 && pot_360>=10) {
+  } else if (pot_360 < 100 && pot_360 >= 10) {
     // pot<100
     printnum1 = (num1[0] << 8) | num2[2];  // hundreds set to zero
     for (j = 0; j <= 9; j++) {
@@ -230,15 +228,14 @@ void loop() {
         printnum3 = (num1[j] << 8) | num2[0];  // ones place
       }
     }
-  }else if (pot_360<10){
+  } else if (pot_360 < 10) {
     //under 10
     printnum1 = (num1[0] << 8) | num2[2];  // hundreds set to zero
     printnum2 = (num1[0] << 8) | num2[1];  // tens set to zero
     for (j = 0; j <= 9; j++) {
       if (string[0] == compare[j]) {
         printnum3 = (num1[j] << 8) | num2[0];  // ones place
-
-  }
+      }
     }
   }
 
@@ -255,13 +252,13 @@ void loop() {
   LEDmux.write(printnum3);  // ones place
   delay(0);
 
-  if (millis() - startTime >= 2000 && circle1==0) {
+  if (millis() - startTime >= 2000 && circle1 == 0) {
     circle(pot_360);
     circle1++;
     Serial.println(pot_360);
   }
   //bluetooth
-    BLEDevice peripheral = BLE.available();
+  BLEDevice peripheral = BLE.available();
   if (peripheral) {
     if (peripheral.localName() != "robit") {
       return;
@@ -270,5 +267,4 @@ void loop() {
     connectPeripheral(peripheral);
     BLE.scanForUuid(BLE_UUID_TEST_SERVICE);
   }
-
 }
